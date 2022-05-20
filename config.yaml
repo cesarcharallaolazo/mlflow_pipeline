@@ -1,6 +1,6 @@
 main:
   project_name: test-all
-  experiment_name: dev
+  experiment_name: prod
   execute_steps:
     - download
     - preprocess
