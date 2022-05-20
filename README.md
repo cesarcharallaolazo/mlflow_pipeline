@@ -33,3 +33,7 @@ Steps MLops
 8. run hyperparameter tunning - multitask
 
     mlflow run . -P hydra_options="hydra/launcher=joblib random_forest_pipeline.random_forest.n_estimators=range(20,40,10) random_forest_pipeline.random_forest.max_depth=range(7,17,5) --m"
+    
+9. run mlflow pipeline with gihub
+
+    mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -P hydra_options="main.project_name=remote_execution"
