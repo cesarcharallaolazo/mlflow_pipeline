@@ -1,26 +1,46 @@
-#!/usr/bin/env python
 import os
+import shutil
 import argparse
 import itertools
 import logging
 import pandas as pd
-import wandb
-import mlflow.sklearn
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_auc_score, plot_confusion_matrix
+
+import mlflow
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
+def use_artifact(input_artifact):
+    query = f"tag.artifact_type='segregate' and tag.current='1'"
+    retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
+                                       filter_string=query,
+                                       order_by=["attributes.start_time DESC"],
+                                       max_results=1)["run_id"][0]
+    logger.info("retrieved run: " + retrieved_run)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
+    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    return local_path
+
+
+def use_model_artifact(model_artifact, artifact_type):
+    query = f"tag.artifact_type='{artifact_type}' and tag.current='1'"
+    retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
+                                       filter_string=query,
+                                       order_by=["attributes.start_time DESC"],
+                                       max_results=1)["run_id"][0]
+    logger.info("retrieved run: " + retrieved_run)
+    model = mlflow.sklearn.load_model(f"runs:/{retrieved_run}/{model_artifact}")
+    logger.info("retrieved model artifact: " + model_artifact)
+    return model
+
+
 def go(args):
-    # os.environ["WANDB_PROJECT"] = "test1"
-    # os.environ["WANDB_RUN_GROUP"] = "dev"
-
-    run = wandb.init(job_type="test")
-
     logger.info("Downloading and reading test artifact")
-    test_data_path = run.use_artifact(args.test_data).file()
+    test_data_path = use_artifact(args.test_data)
     df = pd.read_csv(test_data_path, low_memory=False)
 
     # Extract the target from the features
@@ -29,9 +49,9 @@ def go(args):
     y_test = X_test.pop("genre")
 
     logger.info("Downloading and reading the exported model")
-    model_export_path = run.use_artifact(args.model_export).download()
+    pipe = use_model_artifact(args.model_export, "random_forest")
 
-    pipe = mlflow.sklearn.load_model(model_export_path)
+    # pipe = mlflow.sklearn.load_model(model_export_path)
 
     used_columns = list(itertools.chain.from_iterable([x[2] for x in pipe['preprocessor'].transformers]))
     pred_proba = pipe.predict_proba(X_test[used_columns])
@@ -39,7 +59,11 @@ def go(args):
     logger.info("Scoring")
     score = roc_auc_score(y_test, pred_proba, average="macro", multi_class="ovo")
 
-    run.summary["AUC"] = score
+    mlflow.log_metric("AUC", score)
+
+    base_name_img = "./img/"
+    if not os.path.exists(base_name_img):
+        os.mkdir(base_name_img)
 
     logger.info("Computing confusion matrix")
     fig_cm, sub_cm = plt.subplots(figsize=(10, 10))
@@ -53,12 +77,10 @@ def go(args):
         xticks_rotation=90,
     )
     fig_cm.tight_layout()
+    fig_cm.savefig(base_name_img + 'confusion_matrix.png')
 
-    run.log(
-        {
-            "confusion_matrix": wandb.Image(fig_cm)
-        }
-    )
+    mlflow.log_artifacts(base_name_img, "img")
+    shutil.rmtree(base_name_img)
 
 
 if __name__ == "__main__":
@@ -83,4 +105,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    go(args)
+    with mlflow.start_run() as run:
+        go(args)
+        mlflow.set_tag("artifact_type", "evaluate")
+        mlflow.set_tag("current", "1")

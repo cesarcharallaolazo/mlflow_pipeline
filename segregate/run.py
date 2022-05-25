@@ -5,22 +5,30 @@ import os
 import tempfile
 
 import pandas as pd
-import wandb
+import mlflow
+
 from sklearn.model_selection import train_test_split
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
+def use_artifact(input_artifact):
+    query = "tag.artifact_type='preprocess' and tag.current='1'"
+    retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
+                                       filter_string=query,
+                                       order_by=["attributes.start_time DESC"],
+                                       max_results=1)["run_id"][0]
+    logger.info("retrieved run: " + retrieved_run)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
+    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    return local_path
+
+
 def go(args):
-    # os.environ["WANDB_PROJECT"] = "test1"
-    # os.environ["WANDB_RUN_GROUP"] = "dev"
-
-    run = wandb.init(job_type="split_data")
-
     logger.info("Downloading and reading artifact")
-    artifact = run.use_artifact(args.input_artifact)
-    artifact_path = artifact.file()
+    artifact_path = use_artifact(args.input_artifact)
 
     df = pd.read_csv(artifact_path, low_memory=False)
 
@@ -50,21 +58,8 @@ def go(args):
             # Save then upload to W&B
             df.to_csv(temp_path)
 
-            artifact = wandb.Artifact(
-                name=artifact_name,
-                type=args.artifact_type,
-                description=f"{split} split of dataset {args.input_artifact}",
-            )
-            artifact.add_file(temp_path)
-
             logger.info("Logging artifact")
-            run.log_artifact(artifact)
-
-            # This waits for the artifact to be uploaded to W&B. If you
-            # do not add this, the temp directory might be removed before
-            # W&B had a chance to upload the datasets, and the upload
-            # might fail
-            artifact.wait()
+            mlflow.log_artifact(temp_path, artifact_path=args.artifact_root)
 
 
 if __name__ == "__main__":
@@ -118,4 +113,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    go(args)
+    with mlflow.start_run() as run:
+        go(args)
+        mlflow.set_tag("artifact_type", "segregate")
+        mlflow.set_tag("current", "1")

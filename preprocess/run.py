@@ -1,24 +1,30 @@
-#!/usr/bin/env python
 import argparse
 import logging
 import os
 
 import pandas as pd
-import wandb
+import mlflow
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
+def use_artifact(input_artifact):
+    query = "tag.artifact_type='download' and tag.current='1'"
+    retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
+                                       filter_string=query,
+                                       order_by=["attributes.start_time DESC"],
+                                       max_results=1)["run_id"][0]
+    logger.info("retrieved run: " + retrieved_run)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
+    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    return local_path
+
+
 def go(args):
-    # os.environ["WANDB_PROJECT"] = "test1"
-    # os.environ["WANDB_RUN_GROUP"] = "dev"
-
-    run = wandb.init(job_type="process_data")
-
     logger.info("Downloading artifact")
-    artifact = run.use_artifact(args.input_artifact)
-    artifact_path = artifact.file()
+    artifact_path = use_artifact(args.input_artifact)
 
     df = pd.read_parquet(artifact_path)
 
@@ -32,26 +38,17 @@ def go(args):
     df['song_name'].fillna(value='', inplace=True)
     df['text_feature'] = df['title'] + ' ' + df['song_name']
 
-    filename = "processed_data.csv"
-    df.to_csv(filename)
-
-    artifact = wandb.Artifact(
-        name=args.artifact_name,
-        type=args.artifact_type,
-        description=args.artifact_description,
-    )
-    artifact.add_file(filename)
+    df.to_csv(args.artifact_name)
 
     logger.info("Logging artifact")
-    run.log_artifact(artifact)
+    mlflow.log_artifact(args.artifact_name)
 
-    os.remove(filename)
+    os.remove(args.artifact_name)
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Preprocess a dataset",
-        fromfile_prefix_chars="@",
+        description="Preprocess a dataset"
     )
 
     parser.add_argument(
@@ -78,4 +75,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    go(args)
+    with mlflow.start_run() as run:
+        go(args)
+        mlflow.set_tag("artifact_type", "preprocess")
+        mlflow.set_tag("current", "1")

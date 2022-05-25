@@ -14,7 +14,7 @@ main:
   random_seed: 42
 data:
   file_url: "https://github.com/cesarcharallaolazo/mlflow_pipeline/blob/master/_data/genres_mod.parquet?raw=true"
-  reference_dataset: "preprocessed_data.csv:latest"
+  reference_dataset: "preprocessed_data.csv"
   # Threshold for Kolomorov-Smirnov test
   ks_alpha: 0.05
   test_size: 0.3

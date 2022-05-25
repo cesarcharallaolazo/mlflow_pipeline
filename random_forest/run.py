@@ -1,12 +1,11 @@
-#!/usr/bin/env python
 import argparse
 import itertools
 import logging
 import os
+import shutil
 
 import yaml
 import tempfile
-import mlflow
 import pandas as pd
 import numpy as np
 from mlflow.models import infer_signature
@@ -17,22 +16,31 @@ from sklearn.metrics import roc_auc_score, plot_confusion_matrix
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OrdinalEncoder, StandardScaler, FunctionTransformer
 import matplotlib.pyplot as plt
-import wandb
 from sklearn.pipeline import Pipeline, make_pipeline
 from sklearn.impute import SimpleImputer
+
+import mlflow
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
+def use_artifact(input_artifact):
+    query = "tag.artifact_type='segregate' and tag.current='1'"
+    retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
+                                       filter_string=query,
+                                       order_by=["attributes.start_time DESC"],
+                                       max_results=1)["run_id"][0]
+    logger.info("retrieved run: " + retrieved_run)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
+    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    return local_path
+
+
 def go(args):
-    # os.environ["WANDB_PROJECT"] = "test1"
-    # os.environ["WANDB_RUN_GROUP"] = "dev"
-
-    run = wandb.init(job_type="train")
-
     logger.info("Downloading and reading train artifact")
-    train_data_path = run.use_artifact(args.train_data).file()
+    train_data_path = use_artifact(args.train_data)
     df = pd.read_csv(train_data_path, low_memory=False)
 
     # Extract the target from the features
@@ -63,15 +71,18 @@ def go(args):
     logger.info("Scoring")
     score = roc_auc_score(y_val, pred_proba, average="macro", multi_class="ovo")
 
-    run.summary["AUC"] = score
+    mlflow.log_metric("AUC", score)
 
     # Export if required
     if args.export_artifact != "null":
+        export_model(pipe, used_columns, X_val, pred, args.export_artifact)
 
-        export_model(run, pipe, used_columns, X_val, pred, args.export_artifact)
-
+    base_name_img = "./img/"
+    if not os.path.exists(base_name_img):
+        os.mkdir(base_name_img)
     # Some useful plots
     fig_feat_imp = plot_feature_importance(pipe)
+    fig_feat_imp.savefig(base_name_img + 'feature_importance.png')
 
     fig_cm, sub_cm = plt.subplots(figsize=(10, 10))
     plot_confusion_matrix(
@@ -84,50 +95,31 @@ def go(args):
         xticks_rotation=90,
     )
     fig_cm.tight_layout()
+    fig_cm.savefig(base_name_img + 'confusion_matrix.png')
 
-    run.log(
-        {
-            "feature_importance": wandb.Image(fig_feat_imp),
-            "confusion_matrix": wandb.Image(fig_cm),
-        }
-    )
+    mlflow.log_artifacts(base_name_img, "img")
+    shutil.rmtree(base_name_img)
 
 
-def export_model(run, pipe, used_columns, X_val, val_pred, export_artifact):
-
+def export_model(pipe, used_columns, X_val, val_pred, export_artifact):
     # Infer the signature of the model
 
     # Get the columns that we are really using from the pipeline
     signature = infer_signature(X_val[used_columns], val_pred)
 
     with tempfile.TemporaryDirectory() as temp_dir:
+        # export_path = os.path.join(temp_dir, "model_export")
 
-        export_path = os.path.join(temp_dir, "model_export")
-
-        mlflow.sklearn.save_model(
+        mlflow.sklearn.log_model(
             pipe,
-            export_path,
+            export_artifact,
             serialization_format=mlflow.sklearn.SERIALIZATION_FORMAT_CLOUDPICKLE,
             signature=signature,
             input_example=X_val.iloc[:2],
         )
 
-        artifact = wandb.Artifact(
-            export_artifact,
-            type="model_export",
-            description="Random Forest pipeline export",
-        )
-        artifact.add_dir(export_path)
-
-        run.log_artifact(artifact)
-
-        # Make sure the artifact is uploaded before the temp dir
-        # gets deleted
-        artifact.wait()
-
 
 def plot_feature_importance(pipe):
-
     # We collect the feature importance for all non-nlp features first
     feat_names = np.array(
         pipe["preprocessor"].transformers[0][-1]
@@ -136,7 +128,7 @@ def plot_feature_importance(pipe):
     feat_imp = pipe["classifier"].feature_importances_[: len(feat_names)]
     # For the NLP feature we sum across all the TF-IDF dimensions into a global
     # NLP importance
-    nlp_importance = sum(pipe["classifier"].feature_importances_[len(feat_names) :])
+    nlp_importance = sum(pipe["classifier"].feature_importances_[len(feat_names):])
     feat_imp = np.append(feat_imp, nlp_importance)
     feat_names = np.append(feat_names, "title + song_name")
     fig_feat_imp, sub_feat_imp = plt.subplots(figsize=(10, 10))
@@ -149,13 +141,13 @@ def plot_feature_importance(pipe):
 
 
 def get_training_inference_pipeline(args):
-
     # Get the configuration for the pipeline
     with open(args.model_config) as fp:
         model_config = yaml.safe_load(fp)
     # Add it to the W&B configuration so the values for the hyperparams
     # are tracked
-    wandb.config.update(model_config)
+    # print(dict(model_config))
+    mlflow.log_params(model_config["random_forest"])
 
     # We need 3 separate preprocessing "tracks":
     # - one for categorical features
@@ -262,4 +254,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    go(args)
+    with mlflow.start_run() as run:
+        go(args)
+        mlflow.set_tag("artifact_type", "random_forest")
+        mlflow.set_tag("current", "1")
