@@ -33,4 +33,4 @@ Step MLOps - MLFlow
     
 9. run mlflow pipeline with gihub
 
-    mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -P hydra_options="main.project_name=remote_execution"
+    mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -P hydra_options="main.project_name=complete_execution"
