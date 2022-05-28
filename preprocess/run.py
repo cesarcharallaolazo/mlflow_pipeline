@@ -9,22 +9,22 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
-def use_artifact(input_artifact):
-    query = "tag.artifact_type='download' and tag.current='1'"
+def use_artifact(args):
+    query = f"tag.step='{args.input_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
                                        max_results=1)["run_id"][0]
     logger.info("retrieved run: " + retrieved_run)
-    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, args.input_artifact)
     # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
-    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    logger.info("input_artifact: " + args.input_artifact + " at " + local_path)
     return local_path
 
 
 def go(args):
     logger.info("Downloading artifact")
-    artifact_path = use_artifact(args.input_artifact)
+    artifact_path = use_artifact(args)
 
     df = pd.read_parquet(artifact_path)
 
@@ -52,6 +52,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--step", type=str, help="Current Step Name", required=True
+    )
+
+    parser.add_argument(
+        "--input_step", type=str, help="Input Step Name", required=True
+    )
+
+    parser.add_argument(
         "--input_artifact",
         type=str,
         help="Fully-qualified name for the input artifact",
@@ -60,10 +68,6 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--artifact_name", type=str, help="Name for the artifact", required=True
-    )
-
-    parser.add_argument(
-        "--artifact_type", type=str, help="Type for the artifact", required=True
     )
 
     parser.add_argument(
@@ -77,5 +81,5 @@ if __name__ == "__main__":
 
     with mlflow.start_run() as run:
         go(args)
-        mlflow.set_tag("artifact_type", "preprocess")
+        mlflow.set_tag("step", args.step)
         mlflow.set_tag("current", "1")

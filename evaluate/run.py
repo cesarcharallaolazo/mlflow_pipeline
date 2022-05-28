@@ -13,34 +13,33 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
-def use_artifact(input_artifact):
-    query = f"tag.artifact_type='segregate' and tag.current='1'"
+def use_artifact(args):
+    query = f"tag.step='{args.input_data_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
                                        max_results=1)["run_id"][0]
     logger.info("retrieved run: " + retrieved_run)
-    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
-    # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
-    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, args.test_data)
+    logger.info("input_artifact: " + args.test_data + " at " + local_path)
     return local_path
 
 
-def use_model_artifact(model_artifact, artifact_type):
-    query = f"tag.artifact_type='{artifact_type}' and tag.current='1'"
+def use_model_artifact(args):
+    query = f"tag.step='{args.input_model_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
                                        max_results=1)["run_id"][0]
     logger.info("retrieved run: " + retrieved_run)
-    model = mlflow.sklearn.load_model(f"runs:/{retrieved_run}/{model_artifact}")
-    logger.info("retrieved model artifact: " + model_artifact)
+    model = mlflow.sklearn.load_model(f"runs:/{retrieved_run}/{args.model_export}")
+    logger.info("retrieved model artifact: " + args.model_export)
     return model
 
 
 def go(args):
     logger.info("Downloading and reading test artifact")
-    test_data_path = use_artifact(args.test_data)
+    test_data_path = use_artifact(args)
     df = pd.read_csv(test_data_path, low_memory=False)
 
     # Extract the target from the features
@@ -49,7 +48,7 @@ def go(args):
     y_test = X_test.pop("genre")
 
     logger.info("Downloading and reading the exported model")
-    pipe = use_model_artifact(args.model_export, "random_forest")
+    pipe = use_model_artifact(args)
 
     # pipe = mlflow.sklearn.load_model(model_export_path)
 
@@ -90,10 +89,22 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--step", type=str, help="Current Step Name", required=True
+    )
+
+    parser.add_argument(
+        "--input_model_step", type=str, help="Input Model Step Name", required=True
+    )
+
+    parser.add_argument(
         "--model_export",
         type=str,
         help="Fully-qualified artifact name for the exported model to evaluate",
         required=True,
+    )
+
+    parser.add_argument(
+        "--input_data_step", type=str, help="Input Data Step Name", required=True
     )
 
     parser.add_argument(
@@ -107,5 +118,5 @@ if __name__ == "__main__":
 
     with mlflow.start_run() as run:
         go(args)
-        mlflow.set_tag("artifact_type", "evaluate")
+        mlflow.set_tag("step", args.step)
         mlflow.set_tag("current", "1")

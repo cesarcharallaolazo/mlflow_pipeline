@@ -4,6 +4,13 @@ conda_env: conda.yml
 entry_points:
   main:
     parameters:
+      step:
+        description: Step name for this pipeline
+        type: str
+        default: step_name
+      input_step:
+        description: Fully qualified name for the input step
+        type: str
       reference_artifact:
         description: Fully-qualitied name for the artifact to be used as reference dataset
         type: str
@@ -13,9 +20,10 @@ entry_points:
       ks_alpha:
         description: Threshold for the (pre-trial) p-value for the KS test
         type: float
-    # NOTE: the -s flag is necessary, otherwise pytest will capture all the output and it
-    # will not be uploaded to W&B. Hence, the log in W&B will be empty.
+
     command: >-
-      pytest -s -vv . --reference_artifact {reference_artifact} \
+      pytest -s -vv . --step {step} \
+                      --input_step {input_step} \
+                      --reference_artifact {reference_artifact} \
                       --sample_artifact {sample_artifact} \
                       --ks_alpha {ks_alpha}

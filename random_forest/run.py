@@ -25,22 +25,22 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
-def use_artifact(input_artifact):
-    query = "tag.artifact_type='segregate' and tag.current='1'"
+def use_artifact(args):
+    query = f"tag.step='{args.input_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
                                        max_results=1)["run_id"][0]
     logger.info("retrieved run: " + retrieved_run)
-    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, args.train_data)
     # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
-    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    logger.info("input_artifact: " + args.train_data + " at " + local_path)
     return local_path
 
 
 def go(args):
     logger.info("Downloading and reading train artifact")
-    train_data_path = use_artifact(args.train_data)
+    train_data_path = use_artifact(args)
     df = pd.read_csv(train_data_path, low_memory=False)
 
     # Extract the target from the features
@@ -108,8 +108,6 @@ def export_model(pipe, used_columns, X_val, val_pred, export_artifact):
     signature = infer_signature(X_val[used_columns], val_pred)
 
     with tempfile.TemporaryDirectory() as temp_dir:
-        # export_path = os.path.join(temp_dir, "model_export")
-
         mlflow.sklearn.log_model(
             pipe,
             export_artifact,
@@ -144,9 +142,6 @@ def get_training_inference_pipeline(args):
     # Get the configuration for the pipeline
     with open(args.model_config) as fp:
         model_config = yaml.safe_load(fp)
-    # Add it to the W&B configuration so the values for the hyperparams
-    # are tracked
-    # print(dict(model_config))
     mlflow.log_params(model_config["random_forest"])
 
     # We need 3 separate preprocessing "tracks":
@@ -207,6 +202,14 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--step", type=str, help="Current Step Name", required=True
+    )
+
+    parser.add_argument(
+        "--input_step", type=str, help="Input Step Name", required=True
+    )
+
+    parser.add_argument(
         "--train_data",
         type=str,
         help="Fully-qualified name for the training data artifact",
@@ -256,5 +259,5 @@ if __name__ == "__main__":
 
     with mlflow.start_run() as run:
         go(args)
-        mlflow.set_tag("artifact_type", "random_forest")
+        mlflow.set_tag("step", args.step)
         mlflow.set_tag("current", "1")

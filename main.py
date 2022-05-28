@@ -28,13 +28,13 @@ def go(config: DictConfig):
             os.path.join(root_path, "download"),
             "main",
             parameters={
+                "step": "download_data",
                 "file_url": config["data"]["file_url"],
                 "artifact_name": "raw_data.parquet",
-                "artifact_type": "raw_data",
-                "artifact_description": "Data as downloaded"
+                "artifact_description": "Pipeline for data downloading"
             },
             experiment_name="all_genre_classification",
-            run_name="download"
+            run_name="download_data"
         )
 
     if "preprocess" in steps_to_execute:
@@ -42,9 +42,10 @@ def go(config: DictConfig):
             os.path.join(root_path, "preprocess"),
             "main",
             parameters={
+                "step": "preprocess",
+                "input_step": "download_data",
                 "input_artifact": "raw_data.parquet",
                 "artifact_name": "preprocessed_data.csv",
-                "artifact_type": "preprocessed_data",
                 "artifact_description": "Data with preprocessing applied"
             },
             experiment_name="all_genre_classification",
@@ -56,6 +57,8 @@ def go(config: DictConfig):
             os.path.join(root_path, "check_data"),
             "main",
             parameters={
+                "step": "check_data",
+                "input_step": "preprocess",
                 "reference_artifact": config["data"]["reference_dataset"],
                 "sample_artifact": "preprocessed_data.csv",
                 "ks_alpha": config["data"]["ks_alpha"]
@@ -69,9 +72,10 @@ def go(config: DictConfig):
             os.path.join(root_path, "segregate"),
             "main",
             parameters={
+                "step": "segregate",
+                "input_step": "preprocess",
                 "input_artifact": "preprocessed_data.csv",
                 "artifact_root": "data",
-                "artifact_type": "segregated_data",
                 "test_size": config["data"]["test_size"],
                 "stratify": config["data"]["stratify"]
             },
@@ -90,6 +94,8 @@ def go(config: DictConfig):
             os.path.join(root_path, "random_forest"),
             "main",
             parameters={
+                "step": "random_forest",
+                "input_step": "segregate",
                 "train_data": "data/data_train.csv",
                 "model_config": model_config,
                 "export_artifact": config["random_forest_pipeline"]["export_artifact"],
@@ -106,7 +112,10 @@ def go(config: DictConfig):
             os.path.join(root_path, "evaluate"),
             "main",
             parameters={
+                "step": "evaluate",
+                "input_model_step": "random_forest",
                 "model_export": f"{config['random_forest_pipeline']['export_artifact']}",
+                "input_data_step": "segregate",
                 "test_data": "data/data_test.csv"
             },
             experiment_name="all_genre_classification",

@@ -4,16 +4,19 @@ conda_env: conda.yml
 entry_points:
   main:
     parameters:
+      step:
+        description: Step name for this pipeline
+        type: str
+        default: step_name
+      input_step:
+        description: Fully qualified name for the input step
+        type: str
       input_artifact:
-        description: Fully qualified name for the artifact
+        description: Fully qualified name for the input artifact
         type: str
       artifact_root:
-        description: Name for the W&B artifact that will be created
+        description: Name for the artifact path that will be created
         type: str
-      artifact_type:
-        description: Type of the artifact to create
-        type: str
-        default: segregated_data
       test_size:
         description: Description for the artifact
         type: float
@@ -27,9 +30,10 @@ entry_points:
         default: "null"
 
     command: >-
-      python run.py --input_artifact {input_artifact} \
+      python run.py --step {step} \
+                    --input_step {input_step} \
+                    --input_artifact {input_artifact} \
                     --artifact_root {artifact_root} \
-                    --artifact_type {artifact_type} \
                     --test_size {test_size} \
                     --random_state {random_state} \
                     --stratify {stratify}

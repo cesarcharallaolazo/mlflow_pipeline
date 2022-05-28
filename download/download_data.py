@@ -35,15 +35,15 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
+        "--step", type=str, help="Current Step Name", required=True
+    )
+
+    parser.add_argument(
         "--file_url", type=str, help="URL to the input file", required=True
     )
 
     parser.add_argument(
         "--artifact_name", type=str, help="Name for the artifact", required=True
-    )
-
-    parser.add_argument(
-        "--artifact_type", type=str, help="Type for the artifact", required=True
     )
 
     parser.add_argument(
@@ -57,5 +57,5 @@ if __name__ == "__main__":
 
     with mlflow.start_run() as run:
         go(args)
-        mlflow.set_tag("artifact_type", "download")
+        mlflow.set_tag("step", args.step)
         mlflow.set_tag("current", "1")

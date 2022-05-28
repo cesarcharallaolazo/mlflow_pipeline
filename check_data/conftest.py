@@ -8,12 +8,10 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 mlflow.start_run()
-mlflow.set_tag("artifact_type", "check_data")
-mlflow.set_tag("current", "1")
 
 
-def use_artifact(input_artifact):
-    query = "tag.artifact_type='preprocess' and tag.current='1'"
+def use_artifact(input_step, input_artifact):
+    query = f"tag.step='{input_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
@@ -25,6 +23,8 @@ def use_artifact(input_artifact):
 
 
 def pytest_addoption(parser):
+    parser.addoption("--step", action="store")
+    parser.addoption("--input_step", action="store")
     parser.addoption("--reference_artifact", action="store")
     parser.addoption("--sample_artifact", action="store")
     parser.addoption("--ks_alpha", action="store")
@@ -32,7 +32,11 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def data(request):
+    mlflow.set_tag("step", request.config.option.step)
+    mlflow.set_tag("current", "1")
+
     reference_artifact = request.config.option.reference_artifact
+    input_step = request.config.option.input_step
 
     if reference_artifact is None:
         pytest.fail("--reference_artifact missing on command line")
@@ -42,10 +46,10 @@ def data(request):
     if sample_artifact is None:
         pytest.fail("--sample_artifact missing on command line")
 
-    local_path = use_artifact(reference_artifact)
+    local_path = use_artifact(input_step, reference_artifact)
     sample1 = pd.read_csv(local_path)
 
-    local_path = use_artifact(sample_artifact)
+    local_path = use_artifact(input_step, sample_artifact)
     sample2 = pd.read_csv(local_path)
 
     return sample1, sample2

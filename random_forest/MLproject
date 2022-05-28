@@ -4,6 +4,13 @@ conda_env: conda.yml
 entry_points:
   main:
     parameters:
+      step:
+        description: Step name for this pipeline
+        type: str
+        default: step_name
+      input_step:
+        description: Fully qualified name for the input step
+        type: str
       train_data:
         description: Fully-qualified name for the training data artifact
         type: str
@@ -27,7 +34,9 @@ entry_points:
         type: str
         default: null
     command: >-
-      python run.py --train_data {train_data} \
+      python run.py --step {step} \
+                    --input_step {input_step} \
+                    --train_data {train_data} \
                     --model_config {model_config} \
                     --export_artifact {export_artifact} \
                     --random_seed {random_seed} \

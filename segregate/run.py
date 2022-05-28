@@ -13,22 +13,22 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)-15s %(message)s")
 logger = logging.getLogger()
 
 
-def use_artifact(input_artifact):
-    query = "tag.artifact_type='preprocess' and tag.current='1'"
+def use_artifact(args):
+    query = f"tag.step='{args.input_step}' and tag.current='1'"
     retrieved_run = mlflow.search_runs(experiment_ids=[mlflow.active_run().info.experiment_id],
                                        filter_string=query,
                                        order_by=["attributes.start_time DESC"],
                                        max_results=1)["run_id"][0]
     logger.info("retrieved run: " + retrieved_run)
-    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, input_artifact)
+    local_path = mlflow.tracking.MlflowClient().download_artifacts(retrieved_run, args.input_artifact)
     # MlflowClient().download_artifacts(retrieved_run, input_artifact, "./")
-    logger.info("input_artifact: " + input_artifact + " at " + local_path)
+    logger.info("input_artifact: " + args.input_artifact + " at " + local_path)
     return local_path
 
 
 def go(args):
     logger.info("Downloading and reading artifact")
-    artifact_path = use_artifact(args.input_artifact)
+    artifact_path = use_artifact(args)
 
     df = pd.read_csv(artifact_path, low_memory=False)
 
@@ -55,7 +55,6 @@ def go(args):
 
             logger.info(f"Uploading the {split} dataset to {artifact_name}")
 
-            # Save then upload to W&B
             df.to_csv(temp_path)
 
             logger.info("Logging artifact")
@@ -66,6 +65,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Split a dataset into train and test",
         fromfile_prefix_chars="@",
+    )
+
+    parser.add_argument(
+        "--step", type=str, help="Current Step Name", required=True
+    )
+
+    parser.add_argument(
+        "--input_step", type=str, help="Input Step Name", required=True
     )
 
     parser.add_argument(
@@ -81,10 +88,6 @@ if __name__ == "__main__":
         help="Root for the names of the produced artifacts. The script will produce 2 artifacts: "
              "{root}_train.csv and {root}_test.csv",
         required=True,
-    )
-
-    parser.add_argument(
-        "--artifact_type", type=str, help="Type for the produced artifacts", required=True
     )
 
     parser.add_argument(
@@ -115,5 +118,5 @@ if __name__ == "__main__":
 
     with mlflow.start_run() as run:
         go(args)
-        mlflow.set_tag("artifact_type", "segregate")
+        mlflow.set_tag("step", args.step)
         mlflow.set_tag("current", "1")
