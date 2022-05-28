@@ -33,7 +33,7 @@ def go(config: DictConfig):
                 "artifact_name": "raw_data.parquet",
                 "artifact_description": "Pipeline for data downloading"
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="download_data"
         )
 
@@ -48,7 +48,7 @@ def go(config: DictConfig):
                 "artifact_name": "preprocessed_data.csv",
                 "artifact_description": "Data with preprocessing applied"
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="preprocess"
         )
 
@@ -63,7 +63,7 @@ def go(config: DictConfig):
                 "sample_artifact": "preprocessed_data.csv",
                 "ks_alpha": config["data"]["ks_alpha"]
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="check_data"
         )
 
@@ -79,7 +79,7 @@ def go(config: DictConfig):
                 "test_size": config["data"]["test_size"],
                 "stratify": config["data"]["stratify"]
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="segregate"
         )
 
@@ -103,7 +103,7 @@ def go(config: DictConfig):
                 "val_size": config["data"]["val_size"],
                 "stratify": config["data"]["stratify"]
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="random_forest"
         )
 
@@ -118,7 +118,7 @@ def go(config: DictConfig):
                 "input_data_step": "segregate",
                 "test_data": "data/data_test.csv"
             },
-            experiment_name="all_genre_classification",
+            experiment_name=config["main"]["experiment_name"],
             run_name="evaluate"
         )
 

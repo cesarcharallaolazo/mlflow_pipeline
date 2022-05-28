@@ -1,6 +1,5 @@
 main:
-  project_name: test-all
-  experiment_name: stg
+  experiment_name: dev_all_genre_classification
   execute_steps:
     - download
     - preprocess
