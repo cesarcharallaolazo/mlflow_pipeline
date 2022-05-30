@@ -39,8 +39,8 @@
     
 9. run mlflow pipeline from github
 
-        mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v c78ca23658563ffbbf8294cc168f8769cdfc695f -P hydra_options="main.experiment_name=remote_all_genre_classification"
-        mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v c78ca23658563ffbbf8294cc168f8769cdfc695f -P hydra_options="-m main.mlflow_tracking_url=http://localhost:7755/ main.experiment_name=remote_all_genre_classification random_forest_pipeline.random_forest.n_estimators=14,54"
+        mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="main.experiment_name=remote_all_genre_classification"
+        mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="-m main.mlflow_tracking_url=http://localhost:7755/ main.experiment_name=remote_all_genre_classification random_forest_pipeline.random_forest.n_estimators=14,54"
 
 #### Extra Notes to spin-up a mlflow docker container
 - create docker network: docker network create cesar_net
