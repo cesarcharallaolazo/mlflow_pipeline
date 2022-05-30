@@ -34,7 +34,7 @@
 8. run hyperparameter tunning
 
         mlflow run . -P hydra_options="-m random_forest_pipeline.random_forest.n_estimators=10,50,80"
-        mlflow run . -P hydra_options="-m main.experiment_name=prod_all_genre_classification random_forest_pipeline.random_forest.n_estimators=10,50,80"
+        mlflow run . -P hydra_options="-m main.experiment_name=prod_all_genre_classification random_forest_pipeline.random_forest.n_estimators=12,52,82"
         mlflow run . -P hydra_options="-m random_forest_pipeline.random_forest.n_estimators=15,55,85 random_forest_pipeline.random_forest.max_depth=range(7,17,5)"
     
 9. run mlflow pipeline from github
