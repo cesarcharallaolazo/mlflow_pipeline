@@ -134,3 +134,4 @@ dmypy.json
 mlruns/
 multirun/
 outputs/
+pg_data_1/

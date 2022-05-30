@@ -11,5 +11,6 @@ dependencies:
   - plotly==4.4.1
   - pillow=8.1.2
   - mlflow=1.26.0
+  - boto3==1.23.5
   - pip:
       - omegaconf==2.0.6

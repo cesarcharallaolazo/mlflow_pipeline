@@ -26,6 +26,7 @@ def go(args):
             os.remove(args.artifact_name)
         except Exception as e:
             logger.error("-- Failed --")
+            logger.error(e.args)
             os.remove(args.artifact_name)
 
 
