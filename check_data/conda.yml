@@ -9,4 +9,4 @@ dependencies:
   - pytest=6.2.2
   - scipy=1.6.1
   - mlflow=1.26.0
-  - boto3==1.23.5
+  - boto3=1.23.5
