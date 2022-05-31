@@ -42,6 +42,25 @@
         mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="main.experiment_name=remote_all_genre_classification"
         mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="-m main.mlflow_tracking_url=http://localhost:7755/ main.experiment_name=remote_all_genre_classification random_forest_pipeline.random_forest.n_estimators=14,54"
 
+## Mlflow Deployment
+
+### Batch
+
+a. Download the mlflow model (./serve path)
+
+        mlflow artifacts download -u {artifact_uri(../artifacts/model_export)} -d {destination_path(.)}
+        mlflow artifacts download -u {artifact_uri(../artifacts/data/data_test.csv)} -d {destination_path(.)}
+        
+b. Test the mlflow model
+
+        mlflow models predict -t json -i model_export/input_example.json -m model_export
+        mlflow models predict -t csv -i data_test.csv -m model_export
+        
+### Online
+
+        mlflow models serve -m model_export
+        mlflow models serve -m model_export & (background)
+
 #### Extra Notes to spin-up a mlflow docker container
 - create docker network: docker network create cesar_net
 - run a postgress container: docker run --network cesar_net --expose=5432 -p 5432:5432 -d -v $PWD/pg_data_1/:/var/lib/postgresql/data/ --name pg_mlflow -e POSTGRES_USER='user_pg' -e POSTGRES_PASSWORD='pass_pg' postgres
