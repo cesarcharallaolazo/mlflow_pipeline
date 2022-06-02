@@ -79,7 +79,7 @@ def go(args):
     fig_cm.savefig(base_name_img + 'confusion_matrix.png')
 
     mlflow.log_artifacts(base_name_img, "img")
-    shutil.rmtree(base_name_img)
+    # shutil.rmtree(base_name_img)
 
 
 if __name__ == "__main__":
