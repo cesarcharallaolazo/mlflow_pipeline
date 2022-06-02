@@ -11,7 +11,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Your ML workflow goes here
-          pip install mlflow==1.26.0
+          pip install mlflow==1.23.1
           mlflow run .
           #pip install -r requirements.txt
           #python train.py
