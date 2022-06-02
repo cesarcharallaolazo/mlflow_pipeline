@@ -12,6 +12,7 @@ jobs:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # Your ML workflow goes here
+          pip install conda
           pip3 install --upgrade protobuf==3.20.0
           pip3 install mlflow==1.26.0
           mlflow run .
