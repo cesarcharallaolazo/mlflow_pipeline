@@ -1,4 +1,4 @@
-name: model-wine-quality
+name: genre-classification
 on: [push]
 jobs:
   run:
