@@ -16,13 +16,11 @@ jobs:
           pip3 install --upgrade protobuf==3.20.0
           pip3 install mlflow==1.26.0
           mlflow run .
-          #pip install -r requirements.txt
-          #python train.py
 
-          #echo "MODEL METRICS"
-          #cat metrics.txt
+          echo "## Model metrics" > report.md
+          cat ./evaluate/metrics.txt >> report.md
 
-          echo "## Confusion Matrix Test Dataset" > report.md
+          echo "## Confusion Matrix Test Dataset" >> report.md
 
           cml-publish ./evaluate/img/confusion_matrix.png --md >> report.md
           #cml-publish residuals.png --md >> report.md

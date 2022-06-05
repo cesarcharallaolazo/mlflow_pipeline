@@ -58,7 +58,9 @@ def go(args):
     logger.info("Scoring")
     score = roc_auc_score(y_test, pred_proba, average="macro", multi_class="ovo")
 
-    mlflow.log_metric("AUC", score)
+    with open("./metrics.txt", 'w') as outfile:
+        outfile.write("AUC Test Dataset: %2.5f%%\n" % score)
+        mlflow.log_metric("AUC", score)
 
     base_name_img = "./img/"
     if not os.path.exists(base_name_img):
