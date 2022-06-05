@@ -9,15 +9,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - name: install miniconda
-        env:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Your ML workflow goes here
-          wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-          chmod +x Miniconda3-latest-Linux-x86_64.sh
-          ./Miniconda3-latest-Linux-x86_64.sh -y
-
       - name: cml_run
         env:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
