@@ -1,3 +1,5 @@
+[model_serving]:_md_img/serve.png
+
 # genre_classification
 
 ## Step MLOps - MLFlow
@@ -60,6 +62,8 @@ b. Test the mlflow model
 
         mlflow models serve -m model_export
         mlflow models serve -m model_export & (background)
+        
+![alt][model_serving]
 
 #### Extra Notes to spin-up a mlflow docker container
 - create docker network: docker network create cesar_net

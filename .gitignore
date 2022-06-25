@@ -136,3 +136,4 @@ multirun/
 outputs/
 pg_data_1/
 container_artifacts/
+model_export/
