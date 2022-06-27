@@ -28,18 +28,26 @@
 
         mlflow run ./evaluate -P step=evaluate -P input_model_step=random_forest -P model_export=model_export -P input_data_step=segregate -P test_data=data/data_test.csv --experiment-name genre_classification --run-name evaluate
 
-7. run all ML Pipeline (workflow)     
+7. scheduled predictions
+
+        mlflow run ./prediction
+        
+8. scheduled eventual retraining
+
+        mlflow run ./retraining
+
+9. run all ML Pipeline (workflow)     
 
         mlflow run .
         mlflow run . -P hydra_options="main.experiment_name=prod_all_genre_classification"
 
-8. run hyperparameter tunning
+10. run hyperparameter tunning
 
         mlflow run . -P hydra_options="-m random_forest_pipeline.random_forest.n_estimators=10,50,80"
         mlflow run . -P hydra_options="-m main.experiment_name=prod_all_genre_classification random_forest_pipeline.random_forest.n_estimators=12,52,82"
         mlflow run . -P hydra_options="-m random_forest_pipeline.random_forest.n_estimators=15,55,85 random_forest_pipeline.random_forest.max_depth=range(7,17,5)"
     
-9. run mlflow pipeline from github
+11. run mlflow pipeline from github
 
         mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="main.experiment_name=remote_all_genre_classification"
         mlflow run https://github.com/cesarcharallaolazo/mlflow_pipeline.git -v 4f979eea1c60ffabff0bbad2a077f6d114684a99 -P hydra_options="-m main.mlflow_tracking_url=http://localhost:7755/ main.experiment_name=remote_all_genre_classification random_forest_pipeline.random_forest.n_estimators=14,54"
