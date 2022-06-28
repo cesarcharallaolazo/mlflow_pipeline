@@ -78,6 +78,6 @@ b. Test the mlflow model
 - create docker network: docker network create cesar_net
 - run a postgress container: docker run --network cesar_net --expose=5432 -p 5432:5432 -d -v $PWD/pg_data_1/:/var/lib/postgresql/data/ --name pg_mlflow -e POSTGRES_USER='user_pg' -e POSTGRES_PASSWORD='pass_pg' postgres
 - build Dockerfile: docker build -t mlflow_cesar .
-- modify env var default_artifact_root in local.env with your current directory
+- modify env var default_artifact_root in local.env with your current directory (also in docker-compose on Dag-batch-drift)
 - run mlflow server container: docker run -d -p 7755:5000 -v $PWD/container_artifacts:$PWD/container_artifacts --env-file local.env --network cesar_net --name test mlflow_cesar
 
