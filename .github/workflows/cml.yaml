@@ -1,0 +1,28 @@
+name: genre-classification
+on: [push]
+jobs:
+  run:
+    runs-on: [ubuntu-latest]
+    #container: docker://dvcorg/cml-py3:latest
+    #container: docker://ghcr.io/iterative/cml:0-dvc2-base1
+    container: docker.io/cesarch94/cml_conda
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: cml_run
+        env:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pip3 install --upgrade protobuf==3.20.0
+          pip3 install mlflow==1.26.0
+          mlflow run .
+
+          echo "## Model metrics" > report.md
+          cat ./evaluate/metrics.txt >> report.md
+
+          echo "## Confusion Matrix Test Dataset" >> report.md
+
+          cml-publish ./evaluate/img/confusion_matrix.png --md >> report.md
+          #cml-publish residuals.png --md >> report.md
+
+          cml-send-comment report.md
